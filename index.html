@@ -1,1 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuestro Aniversario</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #FAF7F2; color: #0F2B48; }
+        .serif-title { font-family: 'Playfair Display', serif; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        function App() {
+            const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+            const [pinInput, setPinInput] = React.useState('');
+            const [savedPin, setSavedPin] = React.useState(() => localStorage.getItem('anniversary_pin') || '');
+            const [pinError, setPinError] = React.useState('');
+            const [currentUser, setCurrentUser] = React.useState('Él');
+            const [activeTab, setActiveTab] = React.useState('home');
+            
+            // Estados con persistencia local
+            const [letters, setLetters] = React.useState(() => {
+                const saved = localStorage.getItem('anniversary_letters');
+                return saved ? JSON.parse(saved) : [
+                    { id: 1, title: 'Para el amor de mi vida', content: 'Feliz aniversario. Este espacio digital está hecho para guardar cada palabra...', author: 'Él', date: '25 de octubre de 2026' }
+                ];
+            });
 
+            const [albumItems, setAlbumItems] = React.useState(() => {
+                const saved = localStorage.getItem('anniversary_album');
+                return saved ? JSON.parse(saved) : [];
+            });
+
+            const [calendarEntries, setCalendarEntries] = React.useState(() => {
+                const saved = localStorage.getItem('anniversary_calendar');
+                return saved ? JSON.parse(saved) : {};
+            });
+
+            // Guardar cambios en localStorage automáticamente
+            React.useEffect(() => { localStorage.setItem('anniversary_letters', JSON.stringify(letters)); }, [letters]);
+            React.useEffect(() => { localStorage.setItem('anniversary_album', JSON.stringify(albumItems)); }, [albumItems]);
+            React.useEffect(() => { localStorage.setItem('anniversary_calendar', JSON.stringify(calendarEntries)); }, [calendarEntries]);
+
+            // Estados de modales
+            const [showLetterModal, setShowLetterModal] = React.useState(false);
+            const [newLetterTitle, setNewLetterTitle] = React.useState('');
+            const [newLetterContent, setNewLetterContent] = React.useState('');
+
+            const [showAlbumModal, setShowAlbumModal] = React.useState(false);
+            const [newMediaImage, setNewMediaImage] = React.useState('');
+            const [newMediaCaption, setNewMediaCaption] = React.useState('');
+
+            const [showCalendarModal, setShowCalendarModal] = React.useState(false);
+            const [selectedDateStr, setSelectedDateStr] = React.useState('');
+            const [calendarNoteInput, setCalendarNoteInput] = React.useState('');
+
+            // Contador de aniversario
+            const anniversaryDate = new Date(2024, 9, 27); // 27 de octubre de 2024
+            const now = new Date();
+            let years = now.getFullYear() - anniversaryDate.getFullYear();
+            let months = now.getMonth() - anniversaryDate.getMonth();
+            let days = now.getDate() - anniversaryDate.getDate();
+            if (days < 0) { months--; days += new Date(now.getFullYear(), now.getMonth(), 0).getDate(); }
+            if (months < 0) { years--; months += 12; }
+
+            const handlePinSubmit = (e) => {
+                e.preventDefault();
+                if (!savedPin) {
+                    if (pinInput.length < 4) { setPinError('El PIN debe tener al menos 4 dígitos'); return; }
+                    localStorage.setItem('anniversary_pin', pinInput);
+                    setSavedPin(pinInput);
+                    setIsAuthenticated(true);
+                } else if (pinInput === savedPin) {
+                    setIsAuthenticated(true);
+                } else {
+                    setPinError('PIN incorrecto. Inténtalo de nuevo.');
+                }
+            };
+
+            // Convertir archivo local a Base64
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setNewMediaImage(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            if (!isAuthenticated) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-[#FAF7F2] p-4">
+                        <div className="max-w-md w-full bg-[#F4EFE6] p-8 rounded-3xl shadow-xl border border-[#0F2B48]/10 text-center">
+                            <span className="text-3xl mb-3 inline-block">🔒</span>
+                            <h2 className="serif-title text-3xl font-bold text-[#0F2B48] mb-2">
+                                {savedPin ? 'Espacio Privado' : 'Crear Clave Secreta'}
+                            </h2>
+                            <p className="text-sm text-[#0F2B48]/70 mb-6">
+                                {savedPin ? 'Ingresa tu PIN de 4 dígitos para acceder a sus recuerdos.' : 'Protege este espacio creando una contraseña compartida.'}
+                            </p>
+                            <form onSubmit={handlePinSubmit} className="space-y-4">
+                                <input 
+                                    type="password" maxLength="4" placeholder="••••"
+                                    value={pinInput} onChange={(e) => setPinInput(e.target.value)}
+                                    className="w-full text-center text-3xl tracking-widest py-3 rounded-2xl bg-white border border-[#0F2B48]/20 focus:outline-none focus:ring-2 focus:ring-[#0F2B48]"
+                                />
+                                {pinError && <p className="text-red-600 text-xs">{pinError}</p>}
+                                <button type="submit" className="w-full py-3 bg-[#0F2B48] text-white rounded-2xl font-semibold hover:bg-[#0F2B48]/90 transition">
+                                    {savedPin ? 'Entrar al espacio' : 'Guardar y Entrar'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-[#FAF7F2] text-[#0F2B48] pb-12">
+                    {/* Barra superior */}
+                    <header className="border-b border-[#0F2B48]/10 bg-[#FAF7F2]/80 backdrop-blur sticky top-0 z-40 px-6 py-4 flex justify-between items-center max-w-5xl mx-auto">
+                        <span className="serif-title text-xl font-bold">Nuestro Aniversario</span>
+                        <div className="flex items-center space-x-4">
+                            <div className="flex bg-[#F4EFE6] p-1 rounded-full border border-[#0F2B48]/10">
+                                <button onClick={() => setCurrentUser('Él')} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${currentUser === 'Él' ? 'bg-[#0F2B48] text-white' : 'text-[#0F2B48]'}`}>Él</button>
+                                <button onClick={() => setCurrentUser('Ella')} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${currentUser === 'Ella' ? 'bg-[#0F2B48] text-white' : 'text-[#0F2B48]'}`}>Ella</button>
+                            </div>
+                            <button onClick={() => setIsAuthenticated(false)} className="text-xs text-[#0F2B48]/70 hover:text-[#0F2B48]">Bloquear 🔒</button>
+                        </div>
+                    </header>
+
+                    {/* Contenido Principal */}
+                    <main className="max-w-4xl mx-auto px-4 pt-8 space-y-10">
+                        <div className="space-y-2">
+                            <p className="text-xs uppercase tracking-widest text-[#0F2B48]/60 font-semibold">Un lugar para nosotros</p>
+                            <h1 className="serif-title text-4xl md:text-5xl font-bold">Una historia que seguimos escribiendo.</h1>
+                            <p className="text-[#0F2B48]/70 text-sm md:text-base">Un lugar para guardar lo que compartimos: palabras, fotos y esos días que se vuelven inolvidables.</p>
+                        </div>
+
+                        {/* Contador */}
+                        <div className="bg-[#0F2B48] text-[#FAF7F2] p-8 rounded-3xl shadow-lg relative overflow-hidden">
+                            <p className="text-xs uppercase tracking-widest opacity-80 mb-1">Desde el primer día</p>
+                            <h2 className="serif-title text-2xl md:text-3xl font-bold mb-4">27 de octubre de 2024</h2>
+                            <div className="flex space-x-4 text-sm font-medium opacity-90">
+                                <span>{years} años</span> • <span>{months} meses</span> • <span>{days} días</span>
+                            </div>
+                        </div>
+
+                        {/* Cartas */}
+                        <section className="bg-[#F4EFE6] p-6 md:p-8 rounded-3xl border border-[#0F2B48]/10 space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs uppercase tracking-widest text-[#0F2B48]/60 font-semibold">Palabras que quedan</p>
+                                    <h3 className="serif-title text-2xl font-bold">Cartas</h3>
+                                </div>
+                                <button onClick={() => setShowLetterModal(true)} className="px-4 py-2 bg-[#0F2B48] text-white text-sm rounded-xl font-medium">
+                                    + Escribir una carta
+                                </button>
+                            </div>
+                            <div className="space-y-4">
+                                {letters.map((l) => (
+                                    <div key={l.id} className="bg-white/80 p-5 rounded-2xl border border-[#0F2B48]/10 space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="serif-title text-xl font-bold">{l.title}</h4>
+                                            <span className="text-xs text-[#0F2B48]/60">{l.date} ({l.author})</span>
+                                        </div>
+                                        <p className="text-sm text-[#0F2B48]/80 leading-relaxed">{l.content}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* Álbum */}
+                        <section className="bg-[#F4EFE6] p-6 md:p-8 rounded-3xl border border-[#0F2B48]/10 space-y-6">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs uppercase tracking-widest text-[#0F2B48]/60 font-semibold">Instantes que vuelven (tenemos que empezar a tomarnos fotos)</p>
+                                    <h3 className="serif-title text-2xl font-bold">Álbum</h3>
+                                </div>
+                                <button onClick={() => setShowAlbumModal(true)} className="px-4 py-2 bg-[#0F2B48] text-white text-sm rounded-xl font-medium">
+                                    + Sumar una foto
+                                </button>
+                            </div>
+                            {albumItems.length === 0 ? (
+                                <p className="text-sm text-[#0F2B48]/60 italic">Aún no hay fotos en el álbum. ¡Sube la primera!</p>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {albumItems.map((item) => (
+                                        <div key={item.id} className="bg-white p-3 rounded-2xl shadow-sm border border-[#0F2B48]/10 space-y-2">
+                                            <img src={item.url} alt="Recuerdo" className="w-full h-48 object-cover rounded-xl" />
+                                            <p className="text-xs text-[#0F2B48]/80 font-medium">{item.caption} <span className="opacity-50">({item.author})</span></p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+
+                        {/* Calendario con Notas */}
+                        <section className="bg-[#F4EFE6] p-6 md:p-8 rounded-3xl border border-[#0F2B48]/10 space-y-6">
+                            <div>
+                                <p className="text-xs uppercase tracking-widest text-[#0F2B48]/60 font-semibold">Días con historia</p>
+                                <h3 className="serif-title text-2xl font-bold">Calendario de Notas</h3>
+                            </div>
+                            <div className="grid grid-cols-7 gap-2 text-center">
+                                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => (
+                                    <span key={d} className="text-xs font-bold text-[#0F2B48]/60">{d}</span>
+                                ))}
+                                {Array.from({ length: 31 }, (_, i) => {
+                                    const dayNum = i + 1;
+                                    const dateKey = `2026-10-${dayNum < 10 ? '0' + dayNum : dayNum}`;
+                                    const hasNote = calendarEntries[dateKey];
+                                    return (
+                                        <button 
+                                            key={dayNum}
+                                            onClick={() => {
+                                                setSelectedDateStr(dateKey);
+                                                setCalendarNoteInput(hasNote || '');
+                                                setShowCalendarModal(true);
+                                            }}
+                                            className={`p-3 rounded-xl text-sm font-semibold transition border ${hasNote ? 'bg-[#0F2B48] text-white border-[#0F2B48]' : 'bg-white text-[#0F2B48] border-[#0F2B48]/10 hover:border-[#0F2B48]'}`}
+                                        >
+                                            {dayNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </section>
+                    </main>
+
+                    {/* Modal Carta */}
+                    {showLetterModal && (
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-[#FAF7F2] p-6 rounded-3xl max-w-md w-full space-y-4">
+                                <h3 className="serif-title text-2xl font-bold">Escribir carta</h3>
+                                <input type="text" placeholder="Título" id="lTitle" value={newLetterTitle} onChange={e=>setNewLetterTitle(e.target.value)} className="w-full p-3 rounded-xl bg-white border border-[#0F2B48]/20" />
+                                <textarea placeholder="Escribe tu mensaje aquí..." id="lContent" rows="4" value={newLetterContent} onChange={e=>setNewLetterContent(e.target.value)} className="w-full p-3 rounded-xl bg-white border border-[#0F2B48]/20"></textarea>
+                                <div className="flex justify-end space-x-2">
+                                    <button onClick={() => setShowLetterModal(false)} className="px-4 py-2 text-sm text-[#0F2B48]">Cancelar</button>
+                                    <button onClick={() => {
+                                        if(newLetterTitle && newLetterContent) {
+                                            setLetters([{id: Date.now(), title: newLetterTitle, content: newLetterContent, author: currentUser, date: new Date().toLocaleDateString()}, ...letters]);
+                                            setNewLetterTitle(''); setNewLetterContent('');
+                                            setShowLetterModal(false);
+                                        }
+                                    }} className="px-4 py-2 bg-[#0F2B48] text-white text-sm rounded-xl">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Álbum (Subir desde archivo local del celu) */}
+                    {showAlbumModal && (
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-[#FAF7F2] p-6 rounded-3xl max-w-md w-full space-y-4">
+                                <h3 className="serif-title text-2xl font-bold">Subir foto del celular</h3>
+                                <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full p-2 bg-white rounded-xl border border-[#0F2B48]/20 text-sm" />
+                                {newMediaImage && <img src={newMediaImage} alt="Vista previa" className="w-full h-32 object-cover rounded-xl" />}
+                                <input type="text" placeholder="Descripción breve" value={newMediaCaption} onChange={e=>setNewMediaCaption(e.target.value)} className="w-full p-3 rounded-xl bg-white border border-[#0F2B48]/20 text-sm" />
+                                <div className="flex justify-end space-x-2">
+                                    <button onClick={() => setShowAlbumModal(false)} className="px-4 py-2 text-sm text-[#0F2B48]">Cancelar</button>
+                                    <button onClick={() => {
+                                        if(newMediaImage) {
+                                            setAlbumItems([{id: Date.now(), url: newMediaImage, caption: newMediaCaption || 'Un gran recuerdo', author: currentUser}, ...albumItems]);
+                                            setNewMediaImage(''); setNewMediaCaption('');
+                                            setShowAlbumModal(false);
+                                        }
+                                    }} className="px-4 py-2 bg-[#0F2B48] text-white text-sm rounded-xl">Añadir</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Modal Calendario (Solo notas) */}
+                    {showCalendarModal && (
+                        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-[#FAF7F2] p-6 rounded-3xl max-w-md w-full space-y-4">
+                                <h3 className="serif-title text-2xl font-bold">Nota del día ({selectedDateStr})</h3>
+                                <textarea placeholder="¿Qué pasó este día?" rows="3" value={calendarNoteInput} onChange={e=>setCalendarNoteInput(e.target.value)} className="w-full p-3 rounded-xl bg-white border border-[#0F2B48]/25 text-sm"></textarea>
+                                <div className="flex justify-end space-x-2">
+                                    <button onClick={() => setShowCalendarModal(false)} className="px-4 py-2 text-sm text-[#0F2B48]">Cancelar</button>
+                                    <button onClick={() => {
+                                        const updated = {...calendarEntries};
+                                        if(calendarNoteInput.trim()) {
+                                            updated[selectedDateStr] = calendarNoteInput;
+                                        } else {
+                                            delete updated[selectedDateStr];
+                                        }
+                                        setCalendarEntries(updated);
+                                        setShowCalendarModal(false);
+                                    }} className="px-4 py-2 bg-[#0F2B48] text-white text-sm rounded-xl">Guardar nota</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
